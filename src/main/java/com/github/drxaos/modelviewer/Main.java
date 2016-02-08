@@ -14,9 +14,7 @@ import java.awt.event.WindowEvent;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.concurrent.Callable;
-import java.util.logging.ConsoleHandler;
-import java.util.logging.Handler;
-import java.util.logging.Logger;
+import java.util.logging.*;
 
 public class Main {
 
@@ -26,6 +24,8 @@ public class Main {
     private static JFrame frame;
     private static Container generalCanvasPanel, controlsPanel;
     private static JSplitPane splitPane;
+    private static JTextArea textArea;
+    static TextAreaOutputStream logStream;
 
     private static void createTabs() {
         generalCanvasPanel = new JPanel();
@@ -38,6 +38,11 @@ public class Main {
         splitPane.setPreferredSize(new Dimension(1024, 768));
         splitPane.setOneTouchExpandable(false);
         splitPane.setDividerLocation(768);
+
+        textArea = new JTextArea();
+        JScrollPane scrollPane = new JScrollPane(textArea);
+        controlsPanel.add(scrollPane, BorderLayout.CENTER);
+        logStream.setTextArea(textArea);
 
         Dimension minimumSize = new Dimension(100, 50);
         generalCanvasPanel.setMinimumSize(minimumSize);
@@ -58,22 +63,29 @@ public class Main {
         fileMenu.add(itemOpenModel);
         itemOpenModel.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                FileDialog fdlg = new FileDialog(frame, "Open file", FileDialog.LOAD);
+                final FileDialog fdlg = new FileDialog(frame, "Open file", FileDialog.LOAD);
                 fdlg.setVisible(true);
-                try {
-                    app.loadModel(fdlg.getDirectory() + fdlg.getFile());
-                } catch (Throwable t) {
-                    StringWriter sw = new StringWriter();
-                    PrintWriter pw = new PrintWriter(sw);
-                    t.printStackTrace(pw);
+                new Thread() {
+                    @Override
+                    public void run() {
+                        try {
+                            String modelName = fdlg.getDirectory() + fdlg.getFile();
+                            Logger.getLogger("App").info("Loading model: " + modelName);
+                            app.loadModel(modelName);
+                            Logger.getLogger("App").info("Model loaded");
+                        } catch (Throwable t) {
+                            StringWriter sw = new StringWriter();
+                            PrintWriter pw = new PrintWriter(sw);
+                            t.printStackTrace(pw);
 
-                    JTextArea textArea = new JTextArea(6, 25);
-                    textArea.setText(sw.toString());
-                    textArea.setEditable(false);
-                    JScrollPane scrollPane = new JScrollPane(textArea);
-                    JOptionPane.showMessageDialog(frame, scrollPane);
-                }
-
+                            JTextArea textArea = new JTextArea(6, 25);
+                            textArea.setText(sw.toString());
+                            textArea.setEditable(false);
+                            JScrollPane scrollPane = new JScrollPane(textArea);
+                            JOptionPane.showMessageDialog(frame, scrollPane);
+                        }
+                    }
+                }.start();
             }
         });
 
@@ -88,7 +100,7 @@ public class Main {
 
     private static void createFrame() {
         frame = new JFrame("Model Viewer");
-        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosed(WindowEvent e) {
@@ -136,11 +148,18 @@ public class Main {
 
     public static void main(String[] args) {
         JmeFormatter formatter = new JmeFormatter();
-
+        logStream = new TextAreaOutputStream();
+        Handler textAreaHandler = new StreamHandler(logStream, formatter) {
+            @Override
+            public void publish(LogRecord record) {
+                super.publish(record);
+                flush();
+            }
+        };
         Handler consoleHandler = new ConsoleHandler();
         consoleHandler.setFormatter(formatter);
-
         Logger.getLogger("").removeHandler(Logger.getLogger("").getHandlers()[0]);
+        Logger.getLogger("").addHandler(textAreaHandler);
         Logger.getLogger("").addHandler(consoleHandler);
 
         createCanvas();

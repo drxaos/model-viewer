@@ -1,12 +1,13 @@
 package com.github.drxaos.modelviewer;
 
-import com.jme3.collision.CollisionResult;
-import com.jme3.collision.CollisionResults;
 import com.jme3.input.InputManager;
 import com.jme3.input.MouseInput;
 import com.jme3.input.RawInputListener;
 import com.jme3.input.event.*;
-import com.jme3.math.*;
+import com.jme3.math.FastMath;
+import com.jme3.math.Quaternion;
+import com.jme3.math.Vector2f;
+import com.jme3.math.Vector3f;
 import com.jme3.renderer.Camera;
 import com.jme3.scene.Node;
 
@@ -89,8 +90,8 @@ public class Navigator implements RawInputListener {
 //        if (toCamDistance > (boundX + boundZ) * 3) {
 //            toCamDistance = (boundX + boundZ) * 3;
 //        }
-        if (toCamDistance < 1) {
-            toCamDistance = 1;
+        if (toCamDistance < 0.3f) {
+            toCamDistance = 0.3f;
         }
 //        if (toCamDistance > 900) {
 //            toCamDistance = 900;
@@ -147,8 +148,6 @@ public class Navigator implements RawInputListener {
             return;
         }
 
-        Vector3f groundPoint = getGroundPoint();
-
         if (ldown) {
             dragging = true;
             inputManager.setCursorVisible(false);
@@ -164,15 +163,8 @@ public class Navigator implements RawInputListener {
 
 
         if (evt.getDeltaWheel() != 0) {
-            float delta = 1f * evt.getDeltaWheel() / 150f;
-            toCamDistance -= delta;
-
-            if (groundPoint != null) {
-                float dist = toCamLookAt.distance(groundPoint);
-                float shift = delta * dist / toCamDistance;
-                Vector3f shiftVec = groundPoint.subtract(toCamLookAt).normalize().multLocal(shift);
-                toCamLookAt.addLocal(shiftVec);
-            }
+            float delta = 1f * evt.getDeltaWheel() / 120f;
+            toCamDistance *= 1 - delta * 0.05;
         }
     }
 
@@ -184,14 +176,6 @@ public class Navigator implements RawInputListener {
         if (evt.isPressed()) {
             if (evt.getButtonIndex() == MouseInput.BUTTON_RIGHT && !rdown) {
                 ldown = true;
-
-                if (System.currentTimeMillis() - clickTime < 450 &&
-                        clickPos.getX() - evt.getX() < 5 &&
-                        clickPos.getY() - evt.getY() < 5) {
-                    toCamLookAt.set(getGroundPoint());
-                }
-                clickTime = System.currentTimeMillis();
-                clickPos.set(evt.getX(), evt.getY());
             }
             if (evt.getButtonIndex() == MouseInput.BUTTON_LEFT && !ldown) {
                 rdown = true;
@@ -208,22 +192,6 @@ public class Navigator implements RawInputListener {
             rotating = false;
             inputManager.setCursorVisible(true);
         }
-    }
-
-    protected Vector3f getGroundPoint() {
-        CollisionResults results = new CollisionResults();
-        Vector2f click2d = inputManager.getCursorPosition();
-        Vector3f click3d = cam.getWorldCoordinates(new Vector2f(click2d.x, click2d.y), 0f).clone();
-        Vector3f dir = cam.getWorldCoordinates(new Vector2f(click2d.x, click2d.y), 1f).subtractLocal(click3d).normalizeLocal();
-        Ray ray = new Ray(click3d, dir);
-        rootNode.collideWith(ray, results);
-        if (results.size() > 0) {
-            CollisionResult collision = results.getClosestCollision();
-            if (!"Sky".equals(collision.getGeometry().getName())) {
-                return collision.getContactPoint().setY(0);
-            }
-        }
-        return null;
     }
 
     @Override

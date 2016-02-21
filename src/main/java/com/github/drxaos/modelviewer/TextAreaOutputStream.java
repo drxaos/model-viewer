@@ -35,11 +35,13 @@ public class TextAreaOutputStream extends OutputStream {
 
         if (b == '\n') {
             final String text = sb.toString() + "\n";
-            SwingUtilities.invokeLater(new Runnable() {
-                public void run() {
-                    textArea.append(text);
-                }
-            });
+            if (textArea != null) {
+                SwingUtilities.invokeLater(new Runnable() {
+                    public void run() {
+                        textArea.append(text);
+                    }
+                });
+            }
             sb.setLength(0);
             return;
         }

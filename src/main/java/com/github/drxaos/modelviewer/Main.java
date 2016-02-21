@@ -69,6 +69,9 @@ public class Main {
                     @Override
                     public void run() {
                         try {
+                            if (fdlg.getFile() == null) {
+                                return;
+                            }
                             String modelName = fdlg.getDirectory() + fdlg.getFile();
                             Logger.getLogger("App").info("Loading model: " + modelName);
                             app.loadModel(modelName);
@@ -77,6 +80,8 @@ public class Main {
                             StringWriter sw = new StringWriter();
                             PrintWriter pw = new PrintWriter(sw);
                             t.printStackTrace(pw);
+
+                            Logger.getLogger("App").severe(sw.toString());
 
                             JTextArea textArea = new JTextArea(6, 25);
                             textArea.setText(sw.toString());

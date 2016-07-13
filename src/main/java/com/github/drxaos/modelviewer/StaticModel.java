@@ -20,12 +20,8 @@ public class StaticModel extends Node {
         this.meshName = meshName;
         this.subname = subname;
 
-        Spatial model = ModelCache.getInstance().getModel(subname == null ? meshName : meshName + "#" + subname);
-        if (model == null) {
-            model = am.loadModel(meshName);
-            fresh = true;
-        }
-        model = model.clone(false);
+        Spatial model = am.loadModel(meshName);
+        fixLighting(model);
         this.attachChild(model);
 
         this.name = objectName;
@@ -42,9 +38,9 @@ public class StaticModel extends Node {
             Material material = ((Geometry) spatial).getMaterial();
             if (material.getParam("UseMaterialColors") != null) {
                 material.setBoolean("UseMaterialColors", true);
-                material.setColor("Ambient", ColorRGBA.White.mult(1.0f));
-                material.setColor("Diffuse", ColorRGBA.White.clone());
-                material.setColor("Specular", ColorRGBA.White.mult(0.1f));
+                material.setColor("Ambient", (ColorRGBA) material.getParam("Diffuse").getValue());
+//                material.setColor("Diffuse", ColorRGBA.White.clone());
+//                material.setColor("Specular", ColorRGBA.White.mult(0.1f));
                 material.setFloat("Shininess", 0.1f);
 
                 MatParamTexture diffuseMap = material.getTextureParam("DiffuseMap");

@@ -41,7 +41,7 @@ public class Lights {
         sceneNode.addLight(sun);
 
         al = new AmbientLight();
-        al.setColor(ColorRGBA.White.mult(0.7f));
+        al.setColor(ColorRGBA.White.mult(1.2f));
         sceneNode.addLight(al);
 
         // Shadows
